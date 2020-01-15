@@ -1,7 +1,6 @@
 const express = require("express")
 const helmet = require("helmet")
-// const authRouter = require("./auth/auth-router.js")
-// const usersRouter = require("./users/users-router.js")
+const usersRouter = require("./users/user-router")
 
 const server = express()
 const port = process.env.PORT || 5000
@@ -9,8 +8,7 @@ const port = process.env.PORT || 5000
 server.use(helmet())
 server.use(express.json())
 
-// server.use("/auth", authRouter)
-// server.use("/users", usersRouter)
+server.use("/api", usersRouter)
 
 server.get("/", (req, res, next) => {
   res.json({
