@@ -5,31 +5,13 @@ const usersModel = require("./user-model")
 const router = express.Router()
 
 function restricted() {
-  const authError = {
-    message: "You shall not pass!",
-  }
-
-  return async (req, res, next) => {
-    try {
-      const {username, password} = req.headers
-      if(!username || !password){
-        return res.status(401).json(authError)
-      }
-
-      const user = await usersModel.findBy({ username }).first()
-      if (!user){
-        return res.status(401).json(authError)
-      }
-
-      const passwordValid = await bcrypt.compare(password, user.password)
-      if(!passwordValid) {
-        return res.status(401).json(authError)
-      }
-
-      next()
-    } catch (err) {
-      next(err)
+  return (req, res, next) => {
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({
+        message: "Invalid credentials",
+      })
     }
+    next()
   }
 }
 
@@ -53,17 +35,38 @@ router.post("/register", async (req, res, next) => {
     }
 })
   
-router.post("/login", restricted(), async (req, res, next) => {
+router.post("/login", async (req, res, next) => {
     try {
         const { username, password } = req.body
         const user = await usersModel.findBy({ username }).first()
+        const passwordValid = await bcrypt.compare(password, user.password)
 
-        res.status(200).json({
+        if (user && passwordValid) {
+          req.session.user = user
+    
+          res.status(200).json({
             message: `Welcome ${user.username}!`,
-        })
-    } catch (err) {
+          })
+        } else {
+          res.status(401).json({
+            message: "Invalid Credentials",
+          })
+        }
+      } catch (err) {
         next(err)
     }
+})
+
+router.get("/logout", restricted(), (req, res, next) => {
+  req.session.destroy((err) => {
+    if (err) {
+      next(err)
+    } else {
+      res.json({
+        message: "You are logged out",
+      })
+    }
+  })
 })
 
 module.exports = router
